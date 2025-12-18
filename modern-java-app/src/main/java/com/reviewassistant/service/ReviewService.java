@@ -1,5 +1,6 @@
 package com.reviewassistant.service;
 
+import com.reviewassistant.model.AiReviewResponse;
 import com.reviewassistant.model.CodeChunk;
 import com.reviewassistant.model.PullRequest;
 import com.reviewassistant.model.Repository;
@@ -8,16 +9,13 @@ import com.reviewassistant.model.ReviewRun;
 import com.reviewassistant.repository.PullRequestRepository;
 import com.reviewassistant.repository.ReviewRunRepository;
 import com.reviewassistant.repository.RepositoryRepository;
-import com.reviewassistant.service.dto.AiReviewResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.converter.BeanOutputConverter;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,6 +36,7 @@ public class ReviewService {
     private final ReviewRunRepository reviewRunRepository;
     private final PullRequestRepository pullRequestRepository;
     private final RepositoryRepository repositoryRepository;
+    private final AiService aiService;
     
     public ReviewService(
             GithubService githubService,
@@ -45,151 +44,116 @@ public class ReviewService {
             ChatClient.Builder chatClientBuilder,
             ReviewRunRepository reviewRunRepository,
             PullRequestRepository pullRequestRepository,
-            RepositoryRepository repositoryRepository) {
+            RepositoryRepository repositoryRepository,
+            AiService aiService) {
         this.githubService = githubService;
         this.ragService = ragService;
         this.chatClient = chatClientBuilder.build();
         this.reviewRunRepository = reviewRunRepository;
         this.pullRequestRepository = pullRequestRepository;
         this.repositoryRepository = repositoryRepository;
+        this.aiService = aiService;
     }
     
+    
     /**
-     * Analyze a pull request using AI and save the review results.
+     * Analyze a pull request by database ID with real AI integration.
+     * Fetches real PR diff from GitHub and sends to AI for analysis.
      * 
-     * @param repoId Database ID of the repository
-     * @param prNumber Pull request number
+     * @param prId Database ID of the pull request
      * @param token GitHub OAuth access token
-     * @return Saved ReviewRun entity with comments
+     * @return Saved ReviewRun entity with AI-generated review
      */
     @Transactional
-    public ReviewRun analyzePr(Long repoId, Integer prNumber, String token) {
-        logger.info("Starting AI review for PR #{} in repository ID {}", prNumber, repoId);
+    public ReviewRun analyzePr(Long prId, String token) {
+        logger.info("Starting real AI review for PR database ID: {}", prId);
         
-        // Fetch repository
-        Repository repository = repositoryRepository.findById(repoId)
-                .orElseThrow(() -> new IllegalArgumentException("Repository not found: " + repoId));
+        // 1. Fetch PR from database
+        PullRequest pr = pullRequestRepository.findById(prId)
+                .orElseThrow(() -> new IllegalArgumentException("PR not found: " + prId));
         
-        // Fetch PR details from GitHub
-        List<PullRequest> prs = githubService.fetchOpenPullRequests(
-                token, repository.getOwner(), repository.getName());
+        logger.info("Found PR #{} - {}", pr.getNumber(), pr.getTitle());
         
-        PullRequest pr = prs.stream()
-                .filter(p -> p.getNumber().equals(prNumber))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "PR #" + prNumber + " not found in " + repository.getOwner() + "/" + repository.getName()));
-        
-        // Set repository relationship
-        pr.setRepository(repository);
-        
-        // Save or update PR
-        PullRequest savedPr = pullRequestRepository.findByRepositoryIdAndNumber(repoId, prNumber)
-                .map(existing -> {
-                    existing.setTitle(pr.getTitle());
-                    existing.setAuthor(pr.getAuthor());
-                    existing.setHtmlUrl(pr.getHtmlUrl());
-                    existing.setBaseBranch(pr.getBaseBranch());
-                    existing.setHeadBranch(pr.getHeadBranch());
-                    existing.setHeadSha(pr.getHeadSha());
-                    existing.setBody(pr.getBody());
-                    return pullRequestRepository.save(existing);
-                })
-                .orElseGet(() -> pullRequestRepository.save(pr));
-        
-        // SMART CACHING: Check if we already reviewed this exact commit
-        // If headSha matches an existing review, return cached result (saves OpenAI $$$)
-        List<ReviewRun> existingReviews = reviewRunRepository.findByPullRequestId(savedPr.getId());
-        for (ReviewRun existingRun : existingReviews) {
-            if (pr.getHeadSha().equals(existingRun.getPullRequest().getHeadSha())) {
-                logger.info("Found existing review for commit {} - returning cached result",
-                        pr.getHeadSha());
-                return existingRun;
-            }
+        // Get repository
+        Repository repository = pr.getRepository();
+        if (repository == null) {
+            throw new IllegalStateException("PR has no associated repository");
         }
         
-        logger.info("No cached review found for commit {} - proceeding with AI analysis",
-                pr.getHeadSha());
+        // 2. Fetch Real Diff from GitHub
+        logger.info("Fetching diff from GitHub for PR #{}", pr.getNumber());
+        String diff = githubService.fetchPrDiff(repository.getId(), pr.getNumber(), token);
         
-        // Fetch PR diff
-        String diff = githubService.fetchPrDiff(
-                token, repository.getOwner(), repository.getName(), prNumber);
-        
-        // Retrieve context from RAG (optional, use PR title as query)
-        String context = "";
-        try {
-            List<CodeChunk> relevantChunks = ragService.retrieve(pr.getTitle(), repoId);
-            if (!relevantChunks.isEmpty()) {
-                context = "\n\n### Relevant Code Context:\n" +
-                        relevantChunks.stream()
-                                .limit(CONTEXT_CHUNKS_LIMIT)
-                                .map(chunk -> String.format("File: %s\n```%s\n%s\n```",
-                                        chunk.getFilePath(),
-                                        chunk.getLanguage(),
-                                        chunk.getContent()))
-                                .collect(Collectors.joining("\n\n"));
-            }
-        } catch (Exception e) {
-            logger.warn("Failed to retrieve RAG context: {}", e.getMessage());
-            // Continue without context
+        if (diff == null || diff.isEmpty()) {
+            logger.warn("Empty diff received for PR #{}", pr.getNumber());
+            diff = "No changes detected in this pull request.";
         }
         
-        // Create AI prompt
-        String systemMessage = "You are a senior code reviewer with expertise in software engineering best practices. " +
-                "Analyze the provided pull request diff and provide constructive feedback. " +
-                "Focus on code quality, potential bugs, security issues, and maintainability. " +
-                "Be specific and provide actionable suggestions.";
+        System.out.println("DIFF SENT TO AI: " + diff.substring(0, Math.min(diff.length(), 100)) + "...");
+        logger.info("Diff length: {} characters", diff.length());
         
-        String userMessage = String.format(
-                "# Pull Request Review\n\n" +
-                "**Title:** %s\n\n" +
-                "**Description:**\n%s\n\n" +
-                "**Diff:**\n```diff\n%s\n```%s",
-                pr.getTitle(),
-                pr.getBody() != null ? pr.getBody() : "No description provided",
-                diff,
-                context
-        );
+        // 3. Call Real AI with structured output
+        logger.info("Calling AI service for structured code review");
+        AiReviewResponse aiResponse = aiService.getReview(diff);
         
-        // Use BeanOutputConverter for structured output
-        BeanOutputConverter<AiReviewResponse> outputConverter = 
-                new BeanOutputConverter<>(AiReviewResponse.class);
+        if (aiResponse == null || aiResponse.issues() == null || aiResponse.issues().isEmpty()) {
+            logger.warn("AI returned no issues for PR #{}", pr.getNumber());
+        } else {
+            logger.info("AI response received with {} issues", aiResponse.issues().size());
+        }
         
-        String format = outputConverter.getFormat();
-        
-        logger.info("Calling AI with structured output format");
-        
-        // Call AI
-        AiReviewResponse aiResponse = chatClient.prompt()
-                .system(systemMessage)
-                .user(userMessage + "\n\n" + format)
-                .call()
-                .entity(AiReviewResponse.class);
-        
-        logger.info("AI review completed with {} comments", 
-                aiResponse.getComments() != null ? aiResponse.getComments().size() : 0);
-        
-        // Create ReviewRun entity
+        // 4. Save ReviewRun with AI summary
         ReviewRun reviewRun = new ReviewRun();
-        reviewRun.setPullRequest(savedPr);
-        reviewRun.setSummary(aiResponse.getSummary());
-        reviewRun.setCommentCount(aiResponse.getComments() != null ? aiResponse.getComments().size() : 0);
+        reviewRun.setPullRequest(pr);
         
-        // Save ReviewRun first to get ID
-        ReviewRun savedReviewRun = reviewRunRepository.save(reviewRun);
+        int issueCount = aiResponse != null && aiResponse.issues() != null ? aiResponse.issues().size() : 0;
+        reviewRun.setSummary("AI Analysis Completed: " + issueCount + " issues found");
+        reviewRun.setCommentCount(issueCount);
+        reviewRun = reviewRunRepository.save(reviewRun);
         
-        // Map and save ReviewComments
-        if (aiResponse.getComments() != null) {
-            List<ReviewComment> comments = aiResponse.getComments().stream()
-                    .map(commentDto -> mapToReviewComment(commentDto, savedReviewRun))
-                    .collect(Collectors.toList());
+        logger.info("Saved ReviewRun with ID: {}", reviewRun.getId());
+        
+        // 5. Save each issue as a separate ReviewComment
+        if (aiResponse != null && aiResponse.issues() != null && !aiResponse.issues().isEmpty()) {
+            List<ReviewComment> comments = new ArrayList<>();
             
-            savedReviewRun.setComments(comments);
+            for (AiReviewResponse.Issue issue : aiResponse.issues()) {
+                ReviewComment comment = new ReviewComment();
+                comment.setReviewRun(reviewRun);
+                comment.setFilePath(issue.filePath() != null ? issue.filePath() : "unknown");
+                comment.setLineNumber(issue.lineNumber() > 0 ? issue.lineNumber() : 1);
+                
+                // Normalize severity to lowercase for database
+                String severity = issue.severity() != null ? issue.severity().toLowerCase() : "info";
+                comment.setSeverity(severity);
+                
+                comment.setCategory(issue.category() != null ? issue.category() : "General");
+                comment.setRationale(issue.description() != null ? issue.description() : "");
+                comment.setSuggestion(issue.suggestion() != null ? issue.suggestion() : "");
+                
+                // Build body from description and suggestion
+                StringBuilder body = new StringBuilder();
+                if (issue.description() != null) {
+                    body.append(issue.description());
+                }
+                if (issue.suggestion() != null && !issue.suggestion().isEmpty()) {
+                    if (body.length() > 0) {
+                        body.append("\n\nSuggestion: ");
+                    }
+                    body.append(issue.suggestion());
+                }
+                comment.setBody(body.length() > 0 ? body.toString() : "No description provided");
+                
+                comments.add(comment);
+            }
+            
+            reviewRun.setComments(comments);
+            logger.info("Created {} ReviewComment entities", comments.size());
         }
         
-        logger.info("Review run saved with ID: {}", savedReviewRun.getId());
+        logger.info("AI review completed successfully for PR #{}", pr.getNumber());
         
-        return savedReviewRun;
+        return reviewRun;
     }
     
     /**
@@ -218,21 +182,5 @@ public class ReviewService {
         );
         
         logger.info("Review {} successfully published to GitHub", runId);
-    }
-    
-    /**
-     * Map AI comment DTO to ReviewComment entity.
-     */
-    private ReviewComment mapToReviewComment(AiReviewResponse.CommentDto dto, ReviewRun reviewRun) {
-        ReviewComment comment = new ReviewComment();
-        comment.setReviewRun(reviewRun);
-        comment.setFilePath(dto.getFilePath());
-        comment.setLineNumber(dto.getLineNumber());
-        comment.setSeverity(dto.getSeverity());
-        comment.setCategory(dto.getCategory());
-        comment.setRationale(dto.getRationale());
-        comment.setSuggestion(dto.getSuggestion());
-        comment.setBody(String.format("%s: %s", dto.getCategory(), dto.getRationale()));
-        return comment;
     }
 }

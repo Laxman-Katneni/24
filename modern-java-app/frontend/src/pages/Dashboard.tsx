@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { Shield, GitPullRequest, MessageSquare, AlertTriangle, CheckCircle, Menu, Loader } from 'lucide-react'
+import { Shield, GitPullRequest, MessageSquare, AlertTriangle, CheckCircle, Menu, Loader, RefreshCw } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 interface DashboardMetrics {
@@ -17,7 +17,10 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [repoName, setRepoName] = useState('')
+  const [syncing, setSyncing] = useState(false)
+  const [indexing, setIndexing] = useState(false)
 
   useEffect(() => {
     const selectedRepoId = localStorage.getItem('selectedRepoId')
@@ -35,17 +38,63 @@ export default function Dashboard() {
   const fetchMetrics = async (repoId: string) => {
     try {
       setLoading(true)
+      setError(null)
       const response = await api.get(`/api/repos/${repoId}/metrics`)
       setMetrics(response.data)
     } catch (err: any) {
       console.error('Error fetching metrics:', err)
       
-      if (err.response?.status === 401) {
-        // Unauthorized - redirect to login
-        navigate('/login')
-      }
+      // Set error state instead of redirecting
+      const errorMessage = err.response?.status === 401 
+        ? 'Authentication required. Please login with GitHub.'
+        : err.response?.data?.message || 'Failed to load metrics. Please check your connection.'
+      
+      setError(errorMessage)
+      setMetrics(null)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const syncData = async () => {
+    const selectedRepoId = localStorage.getItem('selectedRepoId')
+    if (!selectedRepoId) return
+
+    try {
+      setSyncing(true)
+      const response = await api.post(`/api/repos/${selectedRepoId}/sync`)
+      console.log('Sync response:', response.data)
+      
+      // Reload metrics after sync
+      await fetchMetrics(selectedRepoId)
+      
+      alert(`Successfully synced ${response.data.count} pull requests!`)
+    } catch (err: any) {
+      console.error('Sync error:', err)
+      const errorMsg = err.response?.data?.message || 'Failed to sync data'
+      alert(`Sync failed: ${errorMsg}`)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const indexRepository = async () => {
+    const selectedRepoId = localStorage.getItem('selectedRepoId')
+    if (!selectedRepoId) return
+
+    try {
+      setIndexing(true)
+      setError(null)
+      const response = await api.post(`/api/repos/${selectedRepoId}/index`)
+      
+      alert(response.data.message || 'Repository indexed successfully! You can now chat about the code.')
+    } catch (err: any) {
+      console.error('Error indexing repository:', err)
+      const errorMsg = err.response?.data?.message || 'Failed to index repository'
+      setError(errorMsg)
+      alert('Error: ' + errorMsg)
+    } finally {
+      setIndexing(false)
     }
   }
 
@@ -96,9 +145,26 @@ export default function Dashboard() {
               >
                 <Menu className="w-6 h-6" />
               </button>
-              <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+              <h1 className="text-2xl font-bold text-white">{repoName}</h1>
             </div>
             <div className="flex items-center gap-4">
+              <button
+                onClick={indexRepository}
+                disabled={indexing}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                title="Index repository code for AI chat"
+              >
+                <Shield className={`w-4 h-4 ${indexing ? 'animate-spin' : ''}`} />
+                {indexing ? 'Indexing...' : 'Index for Chat'}
+              </button>
+              <button
+                onClick={syncData}
+                disabled={syncing}
+                className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Syncing...' : 'Sync Data'}
+              </button>
               <div className="w-10 h-10 rounded-full bg-brand-600 flex items-center justify-center text-white font-semibold">
                 U
               </div>
@@ -111,6 +177,27 @@ export default function Dashboard() {
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader className="w-12 h-12 text-brand-400 animate-spin" />
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="max-w-md w-full bg-red-900/20 border border-red-500 rounded-xl p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <AlertTriangle className="w-8 h-8 text-red-400" />
+                  <h2 className="text-xl font-bold text-white">Connection Error</h2>
+                </div>
+                <p className="text-slate-300 mb-6">{error}</p>
+                <button
+                  onClick={() => {
+                    const selectedRepoId = localStorage.getItem('selectedRepoId')
+                    if (selectedRepoId) {
+                      fetchMetrics(selectedRepoId)
+                    }
+                  }}
+                  className="w-full px-4 py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition font-semibold"
+                >
+                  Retry Connection
+                </button>
+              </div>
             </div>
           ) : metrics ? (
             <>
@@ -169,7 +256,7 @@ export default function Dashboard() {
             </>
           ) : (
             <div className="text-center py-20">
-              <p className="text-slate-400">Failed to load metrics</p>
+              <p className="text-slate-400">No metrics available</p>
             </div>
           )}
         </main>

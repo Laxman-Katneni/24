@@ -1,7 +1,6 @@
 package com.reviewassistant.service;
 
 import com.reviewassistant.exception.AiProcessingException;
-import com.reviewassistant.exception.GithubException;
 import com.reviewassistant.model.CodeChunk;
 import com.reviewassistant.model.Repository;
 import com.reviewassistant.repository.CodeChunkRepository;
@@ -118,8 +117,7 @@ public class RagService {
                     
                     try {
                         // Generate embedding (returns float[])
-                        float[] embeddingArray = embeddingModel.embed(chunkText);
-                        List<Double> embedding = convertToDoubleList(embeddingArray);
+                        float[] embedding = embeddingModel.embed(chunkText);
                         
                         // Create code chunk
                         CodeChunk chunk = new CodeChunk();
@@ -172,26 +170,42 @@ public class RagService {
     
     /**
      * Retrieve similar code chunks for a query using semantic search.
+     * Returns lightweight snippet objects without embedding data.
      * 
      * @param query Natural language query
      * @param repoId Repository ID to search within
-     * @return List of most similar code chunks
+     * @return List of most similar code chunks (without embeddings)
      */
     public List<CodeChunk> retrieve(String query, Long repoId) {
         logger.info("Retrieving chunks for query: '{}' in repository {}", query, repoId);
         
         // Generate embedding for the query (returns float[])
-        float[] queryEmbeddingArray = embeddingModel.embed(query);
-        List<Double> queryEmbedding = convertToDoubleList(queryEmbeddingArray);
+        float[] queryEmbedding = embeddingModel.embed(query);
         
         // Convert embedding to Postgres vector string format: '[0.1, 0.2, 0.3]'
-        String vectorString = queryEmbedding.stream()
-                .map(String::valueOf)
-                .collect(Collectors.joining(",", "[", "]"));
+        StringBuilder vectorString = new StringBuilder("[");
+        for (int i = 0; i < queryEmbedding.length; i++) {
+            if (i > 0) vectorString.append(",");
+            vectorString.append(queryEmbedding[i]);
+        }
+        vectorString.append("]");
         
-        // Query database for similar chunks
-        List<CodeChunk> results = codeChunkRepository.findSimilarChunks(
-                repoId, vectorString, RETRIEVAL_LIMIT);
+        // Query database for similar chunks (using projection to avoid fetching vector)
+        List<CodeChunkRepository.ChunkSnippet> snippets = codeChunkRepository.findSimilarChunks(
+                repoId, vectorString.toString(), RETRIEVAL_LIMIT);
+        
+        // Convert snippets to CodeChunk objects (without embedding)
+        List<CodeChunk> results = snippets.stream()
+                .map(snippet -> {
+                    CodeChunk chunk = new CodeChunk();
+                    chunk.setContent(snippet.getContent());
+                    chunk.setFilePath(snippet.getFilePath());
+                    chunk.setStartLine(snippet.getStartLine());
+                    chunk.setEndLine(snippet.getEndLine());
+                    chunk.setLanguage(snippet.getLanguage());
+                    return chunk;
+                })
+                .collect(java.util.stream.Collectors.toList());
         
         logger.info("Retrieved {} similar chunks", results.size());
         return results;
@@ -246,16 +260,5 @@ public class RagService {
         if (lower.endsWith(".sql")) return "sql";
         
         return "unknown";
-    }
-    
-    /**
-     * Convert float array to List of Doubles for database storage.
-     */
-    private List<Double> convertToDoubleList(float[] floatArray) {
-        List<Double> doubleList = new ArrayList<>(floatArray.length);
-        for (float f : floatArray) {
-            doubleList.add((double) f);
-        }
-        return doubleList;
     }
 }

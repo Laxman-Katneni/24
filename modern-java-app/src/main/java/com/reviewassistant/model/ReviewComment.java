@@ -1,7 +1,10 @@
 package com.reviewassistant.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -62,6 +65,7 @@ public class ReviewComment implements Serializable {
     /**
      * Extra metadata stored as JSON
      */
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private String extra;
     
@@ -69,6 +73,7 @@ public class ReviewComment implements Serializable {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "review_run_id", nullable = false)
     private ReviewRun reviewRun;

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { GitBranch, ExternalLink, Loader } from 'lucide-react'
-import { motion } from 'framer-motion'
 
 interface Repository {
   id: number
@@ -42,10 +41,18 @@ export default function RepoSelection() {
     }
   }
 
-  const selectRepository = (repo: Repository) => {
+  const handleRepoSelect = (repo: Repository) => {
+    console.log('Card Clicked:', repo.name)
+    
+    if (!repo.id) {
+      console.error('CRITICAL ERROR: Repo ID is missing', repo)
+      alert(`Database Error: Repository '${repo.name}' has no ID. Check Backend logs.`)
+      return
+    }
+    
     localStorage.setItem('selectedRepoId', repo.id.toString())
-    localStorage.setItem('selectedRepoName', repo.name)
-    localStorage.setItem('selectedRepoOwner', repo.owner)
+    localStorage.setItem('selectedRepoName', `${repo.owner}/${repo.name}`)
+    console.log('Navigation to /app triggered')
     navigate('/app')
   }
 
@@ -90,36 +97,38 @@ export default function RepoSelection() {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {repositories.map((repo, index) => (
-            <motion.div
+          {repositories.map((repo) => (
+            <div
               key={repo.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-              onClick={() => selectRepository(repo)}
-              className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-brand-500 hover:scale-105 transition-transform cursor-pointer"
+              onClick={() => handleRepoSelect(repo)}
+              className="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-blue-500 cursor-pointer transition-all hover:scale-[1.02] shadow-lg group relative"
             >
-              <div className="flex items-start justify-between mb-4">
+              {/* External Link */}
+              <a
+                href={repo.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="absolute top-4 right-4 text-slate-500 hover:text-blue-400 transition"
+              >
+                <ExternalLink size={18} />
+              </a>
+
+              {/* Icon */}
+              <div className="mb-4">
                 <GitBranch className="w-8 h-8 text-brand-400" />
-                <a
-                  href={repo.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-slate-400 hover:text-brand-400 transition"
-                >
-                  <ExternalLink className="w-5 h-5" />
-                </a>
               </div>
-              
+
+              {/* Repository Name */}
               <h3 className="text-xl font-semibold text-white mb-2">
                 {repo.name}
               </h3>
-              
+
+              {/* Owner */}
               <p className="text-slate-400 text-sm">
                 {repo.owner}
               </p>
-            </motion.div>
+            </div>
           ))}
         </div>
 

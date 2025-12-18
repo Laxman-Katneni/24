@@ -38,15 +38,17 @@ public class CodeChunk implements Serializable {
     
     /**
      * Additional metadata stored as JSON
+     * Made non-insertable/updatable to avoid type casting issues with JSONB
      */
-    @Column(columnDefinition = "jsonb")
+    @Column(columnDefinition = "jsonb", insertable = false, updatable = false)
     private String metadata;
     
     /**
      * Vector embedding for semantic search (AI-powered code retrieval)
+     * Using native float[] for PostgreSQL vector compatibility
      */
     @Column(columnDefinition = "vector")
-    private List<Double> embedding;
+    private float[] embedding;
     
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -129,11 +131,11 @@ public class CodeChunk implements Serializable {
         this.repository = repository;
     }
 
-    public List<Double> getEmbedding() {
+    public float[] getEmbedding() {
         return embedding;
     }
 
-    public void setEmbedding(List<Double> embedding) {
+    public void setEmbedding(float[] embedding) {
         this.embedding = embedding;
     }
 }

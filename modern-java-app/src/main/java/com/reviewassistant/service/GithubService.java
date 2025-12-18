@@ -4,6 +4,8 @@ import com.reviewassistant.exception.GithubException;
 import com.reviewassistant.exception.RateLimitException;
 import com.reviewassistant.model.PullRequest;
 import com.reviewassistant.model.Repository;
+import com.reviewassistant.repository.PullRequestRepository;
+import com.reviewassistant.repository.RepositoryRepository;
 import com.reviewassistant.service.dto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +25,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -37,8 +40,12 @@ public class GithubService {
     private static final int PER_PAGE = 100;
     
     private final RestClient restClient;
+    private final RepositoryRepository repositoryRepository;
+    private final PullRequestRepository pullRequestRepository;
     
-    public GithubService() {
+    public GithubService(RepositoryRepository repositoryRepository, PullRequestRepository pullRequestRepository) {
+        this.repositoryRepository = repositoryRepository;
+        this.pullRequestRepository = pullRequestRepository;
         this.restClient = RestClient.builder()
                 .baseUrl(GITHUB_API_BASE)
                 .build();
@@ -100,9 +107,33 @@ public class GithubService {
         logger.info("Fetched {} repositories from GitHub", allRepos.size());
         
         // Convert DTOs to entities
-        return allRepos.stream()
+        List<Repository> githubRepos = allRepos.stream()
                 .map(this::mapToRepositoryEntity)
                 .collect(Collectors.toList());
+        
+        // Upsert pattern: Update existing or create new
+        List<Repository> savedRepos = new ArrayList<>();
+        for (Repository freshRepo : githubRepos) {
+            Optional<Repository> existingOpt = repositoryRepository.findByUrl(freshRepo.getUrl());
+            
+            if (existingOpt.isPresent()) {
+                // UPDATE: Repo already exists, update its data
+                Repository existing = existingOpt.get();
+                existing.setOwner(freshRepo.getOwner());
+                existing.setName(freshRepo.getName());
+                // ID stays the same, data gets updated
+                savedRepos.add(repositoryRepository.save(existing));
+                logger.debug("Updated existing repository: {}/{}", existing.getOwner(), existing.getName());
+            } else {
+                // CREATE: New repository, insert it
+                savedRepos.add(repositoryRepository.save(freshRepo));
+                logger.debug("Created new repository: {}/{}", freshRepo.getOwner(), freshRepo.getName());
+            }
+        }
+        
+        logger.info("Synced {} repositories (upserted) to database with IDs", savedRepos.size());
+        
+        return savedRepos;
     }
     
     /**
@@ -141,6 +172,76 @@ public class GithubService {
         return prs.stream()
                 .map(dto -> mapToPullRequestEntity(dto, owner, repo))
                 .collect(Collectors.toList());
+    }
+    
+    /**
+     * Sync pull requests from GitHub for a repository and save to database.
+     * Fetches all PRs (open and closed) and upserts them.
+     * 
+     * @param repoId Database ID of the repository
+     * @param token GitHub OAuth access token
+     * @return List of synced and saved PullRequest entities
+     */
+    public List<PullRequest> syncPullRequests(Long repoId, String token) {
+        logger.info("Syncing pull requests for repository ID: {}", repoId);
+        
+        // Find repository from database
+        Repository repository = repositoryRepository.findById(repoId)
+                .orElseThrow(() -> new GithubException("Repository not found with ID: " + repoId));
+        
+        String owner = repository.getOwner();
+        String name = repository.getName();
+        
+        // Fetch ALL pull requests from GitHub (open + closed)
+        List<GitHubPullRequestDto> githubPrs = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/repos/{owner}/{repo}/pulls")
+                        .queryParam("state", "all")  // Get both open and closed
+                        .queryParam("sort", "updated")
+                        .queryParam("direction", "desc")
+                        .queryParam("per_page", 100)
+                        .build(owner, name))
+                .header("Authorization", "Bearer " + token)
+                .header("Accept", "application/vnd.github+json")
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<GitHubPullRequestDto>>() {});
+        
+        if (githubPrs ==  null) {
+            githubPrs = new ArrayList<>();
+        }
+        
+        logger.info("Fetched {} pull requests from GitHub for {}/{}", githubPrs.size(), owner, name);
+        
+        // Upsert each PR (update existing or create new)
+        List<PullRequest> savedPrs = new ArrayList<>();
+        for (GitHubPullRequestDto dto : githubPrs) {
+            Optional<PullRequest> existingOpt = pullRequestRepository
+                    .findByRepositoryIdAndNumber(repoId, dto.number);
+            
+            PullRequest pr;
+            if (existingOpt.isPresent()) {
+                // UPDATE: PR exists, update its data
+                pr = existingOpt.get();
+                pr.setTitle(dto.title);
+                pr.setAuthor(dto.user.login);
+                pr.setHtmlUrl(dto.htmlUrl);
+                pr.setBaseBranch(dto.base.ref);
+                pr.setHeadBranch(dto.head.ref);
+                pr.setHeadSha(dto.head.sha);
+                pr.setBody(dto.body);
+                logger.debug("Updating existing PR #{}", dto.number);
+            } else {
+                // CREATE: New PR, map from DTO
+                pr = mapToPullRequestEntity(dto, owner, name);
+                pr.setRepository(repository);  // Link to parent repository
+                logger.debug("Creating new PR #{}", dto.number);
+            }
+            
+            savedPrs.add(pullRequestRepository.save(pr));
+        }
+        
+        logger.info("Synced {} pull requests to database", savedPrs.size());
+        return savedPrs;
     }
     
     /**
@@ -196,6 +297,25 @@ public class GithubService {
         }
         
         return combinedDiff.toString();
+    }
+    
+    /**
+     * Fetch the raw diff for a pull request from GitHub (overloaded for database ID).
+     * 
+     * @param repoId Database ID of the repository
+     * @param prNumber Pull request number
+     * @param token GitHub OAuth access token
+     * @return Raw diff string
+     */
+    public String fetchPrDiff(Long repoId, int prNumber, String token) {
+        logger.info("Fetching diff for PR #{} in repository ID {}", prNumber, repoId);
+        
+        // Find repository to get owner and name
+        Repository repository = repositoryRepository.findById(repoId)
+                .orElseThrow(() -> new IllegalArgumentException("Repository not found: " + repoId));
+        
+        // Delegate to existing fetchPrDiff method
+        return fetchPrDiff(token, repository.getOwner(), repository.getName(), prNumber);
     }
     
     

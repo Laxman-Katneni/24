@@ -39,8 +39,8 @@ public class SecurityConfig {
                 .failureUrl("/login?error=true")
             )
             .csrf(csrf -> csrf
-                // Disable CSRF for webhooks (validated via HMAC signature)
-                .ignoringRequestMatchers("/api/webhooks/**")
+                // Disable CSRF for API endpoints (frontend uses cookie-based auth)
+                .ignoringRequestMatchers("/api/**")
             );
 
         return http.build();

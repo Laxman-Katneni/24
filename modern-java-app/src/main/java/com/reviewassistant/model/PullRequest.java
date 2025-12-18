@@ -1,5 +1,7 @@
 package com.reviewassistant.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -12,6 +14,7 @@ import java.util.List;
  * Entity representing a Pull Request.
  * Mapped from Python PRInfo model in pr/models.py.
  */
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "pull_requests")
 public class PullRequest implements Serializable {
@@ -50,13 +53,16 @@ public class PullRequest implements Serializable {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "repository_id", nullable = false)
+    @JoinColumn(name = "repository_id")
     private Repository repository;
     
+    @JsonIgnore
     @OneToMany(mappedBy = "pullRequest", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReviewRun> reviewRuns = new ArrayList<>();
     
+    @JsonIgnore
     @OneToMany(mappedBy = "pullRequest", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DiffChunk> diffChunks = new ArrayList<>();
 

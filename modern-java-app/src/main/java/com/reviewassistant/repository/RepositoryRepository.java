@@ -21,4 +21,13 @@ public interface RepositoryRepository extends JpaRepository<Repository, Long> {
      * @return Optional containing the repository if found
      */
     Optional<Repository> findByOwnerAndName(String owner, String name);
+    
+    /**
+     * Find a repository by its URL (GitHub URL is unique).
+     * Used for upsert pattern to avoid duplicates.
+     *
+     * @param url the repository URL
+     * @return Optional containing the repository if found
+     */
+    Optional<Repository> findByUrl(String url);
 }

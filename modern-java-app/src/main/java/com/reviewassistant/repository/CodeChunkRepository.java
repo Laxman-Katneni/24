@@ -12,33 +12,37 @@ import java.util.List;
  * Repository interface for CodeChunk entity.
  * Provides database access for code chunks with vector similarity search.
  */
-@Repository
 public interface CodeChunkRepository extends JpaRepository<CodeChunk, Long> {
     
     /**
-     * Find code chunks by repository ID.
-     * 
-     * @param repoId Repository ID
-     * @return List of code chunks for the repository
+     * Projection interface to fetch only necessary fields (excludes vector column).
      */
-    List<CodeChunk> findByRepositoryId(Long repoId);
+    interface ChunkSnippet {
+        String getContent();
+        String getFilePath();
+        Integer getStartLine();
+        Integer getEndLine();
+        String getLanguage();
+    }
     
     /**
-     * Find similar code chunks using vector similarity search (cosine distance).
-     * Uses pgvector's <-> operator for cosine distance.
+     * Find similar code chunks using vector similarity search.
+     * Uses projection to avoid fetching the vector column which can crash JDBC driver.
      * 
-     * @param repoId Repository ID to scope the search
-     * @param queryVector The query embedding vector as a Postgres-compatible string
+     * @param repositoryId Repository ID to search within
+     * @param queryEmbedding Query embedding as vector string '[0.1, 0.2, ...]'
      * @param limit Maximum number of results
-     * @return List of most similar code chunks
+     * @return List of chunk snippets (without embedding data)
      */
-    @Query(value = "SELECT * FROM code_chunks WHERE repository_id = :repoId " +
-                   "ORDER BY embedding <-> CAST(:queryVector AS vector) " +
+    @Query(value = "SELECT content, file_path as filePath, start_line as startLine, " +
+                   "end_line as endLine, language " +
+                   "FROM code_chunks " +
+                   "WHERE repository_id = :repositoryId " +
+                   "ORDER BY embedding <-> cast(:queryEmbedding as vector) " +
                    "LIMIT :limit", 
            nativeQuery = true)
-    List<CodeChunk> findSimilarChunks(
-            @Param("repoId") Long repoId,
-            @Param("queryVector") String queryVector,
-            @Param("limit") int limit
-    );
+    List<ChunkSnippet> findSimilarChunks(
+            @Param("repositoryId") Long repositoryId,
+            @Param("queryEmbedding") String queryEmbedding,
+            @Param("limit") int limit);
 }

@@ -7,6 +7,7 @@ public class ChatRequest {
     
     private String message;
     private Long repoId;
+    private String conversationId;
     
     public ChatRequest() {
     }
@@ -25,5 +26,13 @@ public class ChatRequest {
     
     public void setRepoId(Long repoId) {
         this.repoId = repoId;
+    }
+    
+    public String getConversationId() {
+        return conversationId;
+    }
+    
+    public void setConversationId(String conversationId) {
+        this.conversationId = conversationId;
     }
 }

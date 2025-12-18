@@ -1,5 +1,6 @@
 package com.reviewassistant.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -40,9 +41,11 @@ public class Repository implements Serializable {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
     
+    @JsonIgnore
     @OneToMany(mappedBy = "repository", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PullRequest> pullRequests = new ArrayList<>();
     
+    @JsonIgnore
     @OneToMany(mappedBy = "repository", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CodeChunk> codeChunks = new ArrayList<>();
 

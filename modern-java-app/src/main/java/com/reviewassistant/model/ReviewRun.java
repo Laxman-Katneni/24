@@ -2,6 +2,8 @@ package com.reviewassistant.model;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -32,6 +34,7 @@ public class ReviewRun implements Serializable {
      * Statistics stored as JSON.
      * In Python: Dict[str, Any] for stats like {"by_severity": {...}, "by_category": {...}}
      */
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private String stats;
     
