@@ -1,30 +1,32 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
-import { Send, Bot, User, Loader, Menu, Shield, GitPullRequest, MessageSquare } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { Send, Bot, User, Loader, Menu, Shield, GitPullRequest, MessageSquare, BarChart, LogOut, ChevronDown } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface Message {
   role: 'user' | 'assistant'
   content: string
 }
 
-const NavItem = ({ icon: Icon, label, to }: any) => {
+const NavItem = ({ icon: Icon, label, to, active = false }: any) => {
   const navigate = useNavigate()
-  const isActive = window.location.pathname === to
   
   return (
-    <button
+    <motion.button
+      whileHover={{ x: 4 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
       onClick={() => navigate(to)}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-        isActive
-          ? 'bg-brand-600 text-white'
-          : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg font-medium transition-colors duration-400 ${
+        active
+          ? 'bg-gray-900 text-white shadow-sm'
+          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
       }`}
     >
       <Icon className="w-5 h-5" />
-      <span className="font-medium">{label}</span>
-    </button>
+      <span>{label}</span>
+    </motion.button>
   )
 }
 
@@ -41,8 +43,8 @@ export default function Chat() {
   const [loading, setLoading] = useState(false)
   const [repoId, setRepoId] = useState<string | null>(null)
   const [repoName, setRepoName] = useState('')
+  const [showUserMenu, setShowUserMenu] = useState(false)
   const [conversationId, setConversationId] = useState<string>(() => {
-    // Generate or retrieve conversation ID
     const existing = sessionStorage.getItem('chatConversationId')
     if (existing) return existing
     const newId = crypto.randomUUID()
@@ -70,7 +72,6 @@ export default function Chat() {
     setLoading(true)
 
     try {
-      console.log('Sending message with repoId:', repoId, 'conversationId:', conversationId)
       const response = await api.post('/api/chat', {
         message: input,
         repoId: parseInt(repoId),
@@ -102,30 +103,31 @@ export default function Chat() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <motion.aside
         initial={{ x: 0 }}
         animate={{ x: sidebarOpen ? 0 : -256 }}
-        className="w-64 bg-slate-800 border-r border-slate-700 p-6 fixed h-full z-10"
+        transition={{ type: "spring", stiffness: 150, damping: 25 }}
+        className="w-64 bg-white border-r border-gray-200 p-6 fixed h-full z-10 shadow-sm"
       >
         <div className="flex items-center gap-3 mb-8">
-          <Shield className="w-8 h-8 text-brand-400" />
-          <h2 className="text-xl font-bold text-white">Repo Mind</h2>
+          <Shield className="w-8 h-8 text-gray-900" />
+          <h2 className="text-xl font-bold text-gray-900">Repo Mind</h2>
         </div>
 
         <nav className="space-y-2">
-          <NavItem icon={Shield} label="Dashboard" to="/app" />
-          <NavItem icon={GitPullRequest} label="Pull Requests" to="/app/pull-requests" />
-          <NavItem icon={MessageSquare} label="Chat" to="/app/chat" />
+          <NavItem icon={BarChart} label="Dashboard" to="/app" active={false} />
+          <NavItem icon={GitPullRequest} label="Pull Requests" to="/app/pull-requests" active={false} />
+          <NavItem icon={MessageSquare} label="Chat" to="/app/chat" active={true} />
         </nav>
 
-        <div className="mt-8 pt-8 border-t border-slate-700">
-          <p className="text-xs text-slate-400 mb-2">Current Repository</p>
-          <p className="text-sm text-white font-semibold truncate">{repoName}</p>
+        <div className="mt-8 pt-8 border-t border-gray-200">
+          <p className="text-xs text-gray-500 mb-2 font-medium">Current Repository</p>
+          <p className="text-sm text-gray-900 font-semibold truncate">{repoName}</p>
           <button
             onClick={() => navigate('/app/select-repo')}
-            className="mt-2 text-xs text-brand-400 hover:text-brand-300"
+            className="mt-2 text-xs text-gray-900 hover:text-gray-700 font-semibold underline underline-offset-2 transition-colors duration-400"
           >
             Change Repository
           </button>
@@ -133,27 +135,64 @@ export default function Chat() {
       </motion.aside>
 
       {/* Main Content */}
-      <div className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-0'} transition-all flex flex-col`}>
+      <motion.div 
+        className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-0'} flex flex-col`}
+        initial={false}
+        animate={{ marginLeft: sidebarOpen ? 256 : 0 }}
+        transition={{ type: "spring", stiffness: 150, damping: 25 }}
+      >
         {/* Top Bar */}
-        <header className="bg-slate-800 border-b border-slate-700 px-6 py-4">
+        <header className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="text-slate-400 hover:text-white"
+                className="text-gray-400 hover:text-gray-900 transition-colors duration-400"
               >
                 <Menu className="w-6 h-6" />
-              </button>
+              </motion.button>
               <div className="flex items-center gap-3">
-                <Bot className="w-8 h-8 text-brand-400" />
+                <Bot className="w-8 h-8 text-gray-900" />
                 <div>
-                  <h1 className="text-xl font-bold text-white">Chat with Your Codebase</h1>
-                  <p className="text-sm text-slate-400">RAG-powered AI assistant</p>
+                  <h1 className="text-2xl font-bold text-gray-900">Chat with Your Codebase</h1>
+                  <p className="text-sm text-gray-600">RAG-powered AI assistant</p>
                 </div>
               </div>
             </div>
-            <div className="w-10 h-10 rounded-full bg-brand-600 flex items-center justify-center text-white font-semibold">
-              U
+            
+            {/* User Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 px-3 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors duration-400 shadow-sm"
+              >
+                <User className="w-4 h-4" />
+                <ChevronDown className="w-3 h-3" />
+              </button>
+              
+              {showUserMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50"
+                >
+                  <button
+                    onClick={() => {
+                      localStorage.clear()
+                      sessionStorage.clear()
+                      navigate('/')
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="font-medium">Logout</span>
+                  </button>
+                </motion.div>
+              )}
             </div>
           </div>
         </header>
@@ -161,53 +200,74 @@ export default function Chat() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-6 py-8">
           <div className="max-w-4xl mx-auto space-y-6">
-            {messages.map((message, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : ''}`}
-              >
-                {message.role === 'assistant' && (
-                  <div className="w-10 h-10 rounded-full bg-brand-600 flex items-center justify-center flex-shrink-0">
-                    <Bot className="w-6 h-6 text-white" />
-                  </div>
-                )}
-                
-                <div
-                  className={`px-6 py-4 rounded-2xl max-w-2xl ${
-                    message.role === 'user'
-                      ? 'bg-brand-600 text-white'
-                      : 'bg-slate-800 text-slate-100 border border-slate-700'
-                  }`}
+            <AnimatePresence>
+              {messages.map((message, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ 
+                    type: "spring",
+                    stiffness: 200,
+                    damping: 25,
+                    delay: index * 0.08
+                  }}
+                  className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : ''}`}
                 >
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                </div>
+                  {message.role === 'assistant' && (
+                    <motion.div 
+                      whileHover={{ scale: 1.1 }}
+                      transition={{ duration: 0.4, ease: "easeOut" }}
+                      className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0 shadow-sm"
+                    >
+                      <Bot className="w-6 h-6 text-white" />
+                    </motion.div>
+                  )}
+                  
+                  <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className={`px-6 py-4 rounded-3xl max-w-2xl shadow-md ${
+                      message.role === 'user'
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-white text-gray-900 border border-gray-200'
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                  </motion.div>
 
-                {message.role === 'user' && (
-                  <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0">
-                    <User className="w-6 h-6 text-slate-300" />
-                  </div>
-                )}
-              </motion.div>
-            ))}
+                  {message.role === 'user' && (
+                    <motion.div 
+                      whileHover={{ scale: 1.1 }}
+                      transition={{ duration: 0.4, ease: "easeOut" }}
+                      className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0"
+                    >
+                      <User className="w-6 h-6 text-gray-700" />
+                    </motion.div>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
             
             {loading && (
-              <div className="flex gap-4">
-                <div className="w-10 h-10 rounded-full bg-brand-600 flex items-center justify-center flex-shrink-0">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex gap-4"
+              >
+                <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0 shadow-sm">
                   <Bot className="w-6 h-6 text-white" />
                 </div>
-                <div className="px-6 py-4 rounded-2xl bg-slate-800 border border-slate-700">
-                  <Loader className="w-5 h-5 text-brand-400 animate-spin" />
+                <div className="px-6 py-4 rounded-3xl bg-white border border-gray-200 shadow-md">
+                  <Loader className="w-5 h-5 text-gray-900 animate-spin" />
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
         </div>
 
         {/* Input */}
-        <div className="bg-slate-800 border-t border-slate-700 px-6 py-4">
+        <div className="bg-white border-t border-gray-200 px-6 py-6 shadow-lg">
           <div className="max-w-4xl mx-auto">
             <div className="flex gap-3">
               <input
@@ -217,23 +277,26 @@ export default function Chat() {
                 onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
                 disabled={loading}
                 placeholder="Ask about your codebase..."
-                className="flex-1 px-4 py-3 bg-slate-900 text-white rounded-lg border border-slate-600 focus:border-brand-500 focus:outline-none disabled:opacity-50"
+                className="flex-1 px-5 py-4 bg-gray-50 text-gray-900 rounded-2xl border border-gray-200 focus:border-gray-900 focus:outline-none disabled:opacity-50 transition-all duration-200 placeholder-gray-400"
               />
-              <button
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 onClick={handleSend}
                 disabled={loading || !input.trim()}
-                className="px-6 py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition flex items-center gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-8 py-4 bg-gray-900 text-white rounded-2xl hover:bg-gray-800 transition-all duration-400 flex items-center gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-xl"
               >
                 {loading ? <Loader className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                 Send
-              </button>
+              </motion.button>
             </div>
-            <p className="text-xs text-slate-400 mt-2">
+            <p className="text-xs text-gray-500 mt-3 text-center">
               Powered by RAG and GPT-4. Press Enter to send.
             </p>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }

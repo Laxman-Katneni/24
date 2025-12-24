@@ -58,10 +58,10 @@ export default function RepoSelection() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader className="w-12 h-12 text-brand-400 animate-spin mx-auto mb-4" />
-          <p className="text-slate-300">Loading repositories...</p>
+          <Loader className="w-12 h-12 text-gray-900 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">Loading repositories...</p>
         </div>
       </div>
     )
@@ -69,13 +69,13 @@ export default function RepoSelection() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center px-6">
-        <div className="max-w-md w-full bg-slate-800 rounded-xl p-8 border border-red-500">
-          <h2 className="text-xl font-bold text-white mb-4">Error</h2>
-          <p className="text-slate-300 mb-6">{error}</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+        <div className="max-w-md w-full bg-white rounded-2xl p-8 border border-red-200 shadow-lg">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Error</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={fetchRepositories}
-            className="w-full px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
+            className="w-full px-4 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition shadow-sm font-semibold"
           >
             Retry
           </button>
@@ -85,13 +85,13 @@ export default function RepoSelection() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 px-6 py-12">
+    <div className="min-h-screen bg-gray-50 px-6 py-12">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">
+          <h1 className="text-5xl font-bold text-gray-900 mb-4 tracking-tight">
             Select a Repository
           </h1>
-          <p className="text-xl text-slate-300">
+          <p className="text-xl text-gray-600">
             Choose a repository to analyze and chat with
           </p>
         </div>
@@ -101,7 +101,7 @@ export default function RepoSelection() {
             <div
               key={repo.id}
               onClick={() => handleRepoSelect(repo)}
-              className="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-blue-500 cursor-pointer transition-all hover:scale-[1.02] shadow-lg group relative"
+              className="bg-gray-900 p-8 rounded-3xl border border-gray-800 hover:border-gray-700 cursor-pointer transition-all duration-500 ease-out hover:shadow-2xl hover:-translate-y-1 shadow-md group relative"
             >
               {/* External Link */}
               <a
@@ -109,23 +109,23 @@ export default function RepoSelection() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="absolute top-4 right-4 text-slate-500 hover:text-blue-400 transition"
+                className="absolute top-5 right-5 text-gray-500 hover:text-white transition-colors duration-400"
               >
                 <ExternalLink size={18} />
               </a>
 
               {/* Icon */}
-              <div className="mb-4">
-                <GitBranch className="w-8 h-8 text-brand-400" />
+              <div className="mb-5">
+                <GitBranch className="w-10 h-10 text-white group-hover:scale-110 transition-transform duration-500 ease-out" />
               </div>
 
               {/* Repository Name */}
-              <h3 className="text-xl font-semibold text-white mb-2">
+              <h3 className="text-2xl font-semibold text-white mb-3">
                 {repo.name}
               </h3>
 
               {/* Owner */}
-              <p className="text-slate-400 text-sm">
+              <p className="text-gray-400 text-base font-medium">
                 {repo.owner}
               </p>
             </div>
@@ -134,7 +134,7 @@ export default function RepoSelection() {
 
         {repositories.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-slate-400 text-lg">
+            <p className="text-gray-500 text-lg">
               No repositories found. Make sure you have access to GitHub repositories.
             </p>
           </div>

@@ -1,6 +1,7 @@
 package com.reviewassistant.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.reviewassistant.controller.dto.AuditNotification;
 import com.reviewassistant.model.AuditFinding;
 import com.reviewassistant.model.CodeAudit;
 import com.reviewassistant.model.Repository;
@@ -10,6 +11,7 @@ import com.reviewassistant.repository.RepositoryRepository;
 import com.reviewassistant.service.dto.AuditResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +45,7 @@ public class CodeAuditService {
     private final HuggingFaceAuditService huggingFaceAuditService;
     private final GithubService githubService;
     private final ObjectMapper objectMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public CodeAuditService(
             CodeAuditRepository codeAuditRepository,
@@ -50,13 +53,15 @@ public class CodeAuditService {
             RepositoryRepository repositoryRepository,
             HuggingFaceAuditService huggingFaceAuditService,
             GithubService githubService,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            SimpMessagingTemplate messagingTemplate) {
         this.codeAuditRepository = codeAuditRepository;
         this.auditFindingRepository = auditFindingRepository;
         this.repositoryRepository = repositoryRepository;
         this.huggingFaceAuditService = huggingFaceAuditService;
         this.githubService = githubService;
         this.objectMapper = objectMapper;
+        this.messagingTemplate = messagingTemplate;
     }
 
     /**
@@ -180,10 +185,50 @@ public class CodeAuditService {
             logger.info("Audit {} completed: {} files scanned, {} files with issues, {} failed",
                 auditId, audit.getTotalFilesScanned(), audit.getFilesWithIssues(), failedCount);
 
+            // Send WebSocket notification on success
+            sendAuditCompleteNotification(audit);
+
         } catch (Exception e) {
             logger.error("Audit {} failed with exception: {}", auditId, e.getMessage(), e);
             audit.markFailed(e.getMessage());
             codeAuditRepository.save(audit);
+            
+            // Send WebSocket notification on failure
+            sendAuditFailedNotification(audit);
+        }
+    }
+
+    /**
+     * Sends WebSocket notification when audit completes successfully.
+     */
+    private void sendAuditCompleteNotification(CodeAudit audit) {
+        try {
+            AuditNotification notification = AuditNotification.success(
+                audit.getId(),
+                audit.getCriticalCount(),
+                audit.getWarningCount(),
+                audit.getInfoCount()
+            );
+            messagingTemplate.convertAndSend("/topic/audit-updates", notification);
+            logger.info("Sent WebSocket notification for completed audit {}", audit.getId());
+        } catch (Exception e) {
+            logger.error("Failed to send WebSocket notification: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Sends WebSocket notification when audit fails.
+     */
+    private void sendAuditFailedNotification(CodeAudit audit) {
+        try {
+            AuditNotification notification = AuditNotification.failure(
+                audit.getId(),
+                audit.getErrorMessage()
+            );
+            messagingTemplate.convertAndSend("/topic/audit-updates", notification);
+            logger.info("Sent WebSocket notification for failed audit {}", audit.getId());
+        } catch (Exception e) {
+            logger.error("Failed to send WebSocket notification: {}", e.getMessage());
         }
     }
 
@@ -287,5 +332,13 @@ public class CodeAuditService {
     public CodeAudit getAuditStatus(Long auditId) {
         return codeAuditRepository.findById(auditId)
             .orElseThrow(() -> new IllegalArgumentException("Audit not found"));
+    }
+
+    /**
+     * Gets the latest audit for a repository.
+     */
+    public CodeAudit getLatestAuditForRepository(Long repositoryId) {
+        return codeAuditRepository.findTopByRepositoryIdOrderByStartedAtDesc(repositoryId)
+            .orElse(null);
     }
 }

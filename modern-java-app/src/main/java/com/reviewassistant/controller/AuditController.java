@@ -48,7 +48,7 @@ public class AuditController {
         try {
             logger.info("Starting audit for repository ID: {}", repositoryId);
             Long auditId = codeAuditService.startAudit(repositoryId, accessToken);
-            return ResponseEntity.ok(StartAuditResponse.success(auditId));
+            return ResponseEntity.accepted().body(StartAuditResponse.success(auditId));
         } catch (Exception e) {
             logger.error("Failed to start audit: {}", e.getMessage(), e);
             return ResponseEntity.status(500).build();
@@ -108,5 +108,22 @@ public class AuditController {
     @GetMapping("/{auditId}/summary")
     public ResponseEntity<AuditStatusResponse> getAuditSummary(@PathVariable Long auditId) {
         return getAuditStatus(auditId);
+    }
+
+    /**
+     * Get the latest audit for a repository.
+     */
+    @GetMapping("/latest/{repositoryId}")
+    public ResponseEntity<AuditStatusResponse> getLatestAudit(@PathVariable Long repositoryId) {
+        try {
+            CodeAudit audit = codeAuditService.getLatestAuditForRepository(repositoryId);
+            if (audit == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(AuditStatusResponse.fromEntity(audit));
+        } catch (Exception e) {
+            logger.error("Failed to get latest audit: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).build();
+        }
     }
 }

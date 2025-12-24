@@ -43,7 +43,7 @@ public class HuggingFaceAuditService {
 
     /**
      * Analyzes code using the fine-tuned Hugging Face model via OpenAI-compatible API.
-     * Handles the response parsing from llama-cpp-python server.
+     * Handles double-deserialization: first parses OpenAI response, then extracts and parses JSON content.
      * 
      * @param code The source code to analyze
      * @param language The programming language (Java, Python, TypeScript, etc.)
@@ -60,55 +60,34 @@ public class HuggingFaceAuditService {
             logger.debug("Analyzing file: {} (language: {})", filePath, language);
             logger.debug("Calling endpoint: {}", auditUrl);
             
-            // Create OpenAI-compatible request
+            // Create OpenAI-compatible request with model field
             HuggingFaceAuditRequest request = HuggingFaceAuditRequest.forCode(code, language);
             
-            // Call Hugging Face API and get raw string response for better error handling
-            String rawResponse = restClient.post()
+            // Call OpenAI-compatible endpoint
+            HuggingFaceAuditResponse response = restClient.post()
                 .uri(auditUrl)
                 .header("Authorization", "Bearer " + apiToken)
                 .header("Content-Type", "application/json")
                 .body(request)
                 .retrieve()
-                .body(String.class);
+                .body(HuggingFaceAuditResponse.class);
             
-            if (rawResponse == null || rawResponse.isEmpty()) {
-                logger.error("Received null or empty response from Hugging Face for file: {}", filePath);
+            if (response == null) {
+                logger.error("Received null response from endpoint for file: {}", filePath);
                 return null;
             }
             
-            // Log first 500 chars of response for debugging
-            logger.debug("Raw response (first 500 chars): {}", 
-                rawResponse.length() > 500 ? rawResponse.substring(0, 500) : rawResponse);
-            
-            // Check if response is HTML (error page)
-            if (rawResponse.trim().startsWith("<")) {
-                logger.error("Received HTML instead of JSON from endpoint: {}", auditUrl);
-                logger.error("HTML response: {}", rawResponse.substring(0, Math.min(1000, rawResponse.length())));
-                return null;
-            }
-            
-            // Parse the string as HuggingFaceAuditResponse
-            HuggingFaceAuditResponse response;
-            try {
-                response = objectMapper.readValue(rawResponse, HuggingFaceAuditResponse.class);
-            } catch (JsonProcessingException e) {
-                logger.error("Failed to parse response as JSON for file {}: {}", filePath, e.getMessage());
-                logger.error("Response was: {}", rawResponse);
-                return null;
-            }
-            
-            // Extract content from OpenAI response structure
+            // Extract content from choices[0].message.content
             String content = response.getContent();
             if (content == null || content.isEmpty()) {
-                logger.warn("Received empty content from Hugging Face for file: {}", filePath);
-                logger.warn("Full response: {}", rawResponse);
+                logger.warn("Received empty content from endpoint for file: {}", filePath);
                 return null;
             }
             
-            logger.debug("Extracted content: {}", content);
+            logger.debug("Extracted content from OpenAI response: {}", 
+                content.length() > 200 ? content.substring(0, 200) + "..." : content);
             
-            // Parse the JSON content to AuditResult
+            // Double-deserialize: parse the content string as JSON to get AuditResult
             return parseAuditResult(content, filePath);
             
         } catch (RestClientException e) {

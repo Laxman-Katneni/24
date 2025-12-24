@@ -114,6 +114,12 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
         
+        <!-- WebSocket for real-time notifications -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+        
         <!-- Spring Boot Starter Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

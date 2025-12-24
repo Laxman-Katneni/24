@@ -3,11 +3,18 @@
 @theme {
   --color-brand-50: #f0f9ff;
   --color-brand-400: #38bdf8;
+  --color-brand-500: #0ea5e9;
   --color-brand-600: #0284c7;
+  --color-brand-700: #0369a1;
   --color-brand-900: #0c4a6e;
 }
 
-/* Global Dark Theme Reset */
+/* Apple-Inspired Light Theme */
 body {
-  @apply bg-slate-900 text-white antialiased;
+  @apply bg-white text-gray-900 antialiased;
+}
+
+/* Smooth transitions for better UX */
+* {
+  @apply transition-colors duration-200;
 }

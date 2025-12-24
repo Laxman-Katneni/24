@@ -88,10 +88,10 @@ export default function ReviewResult() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Shield className="w-12 h-12 text-brand-400 animate-pulse mx-auto mb-4" />
-          <p className="text-slate-300">Loading review...</p>
+          <Shield className="w-12 h-12 text-gray-900 animate-pulse mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">Loading review...</p>
         </div>
       </div>
     )
@@ -99,16 +99,16 @@ export default function ReviewResult() {
 
   if (error || !review) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center px-6">
-        <div className="max-w-md w-full bg-slate-800 rounded-xl p-8 border border-slate-700 text-center">
-          <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-white mb-4">No Review Found</h2>
-          <p className="text-slate-300 mb-6">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+        <div className="max-w-md w-full bg-white rounded-2xl p-8 border border-gray-200 text-center shadow-lg">
+          <AlertTriangle className="w-16 h-16 text-yellow-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-4">No Review Found</h2>
+          <p className="text-gray-600 mb-6">
             {error || 'No AI review has been run for this pull request yet.'}
           </p>
           <button
             onClick={() => navigate('/app/pull-requests')}
-            className="w-full px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
+            className="w-full px-4 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition shadow-sm font-semibold"
           >
             Back to Pull Requests
           </button>
@@ -118,22 +118,22 @@ export default function ReviewResult() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 px-6 py-12">
+    <div className="min-h-screen bg-gray-50 px-6 py-12">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <button
             onClick={() => navigate('/app/pull-requests')}
-            className="flex items-center gap-2 text-slate-400 hover:text-white mb-4 transition"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition font-medium"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Pull Requests
           </button>
           <div className="flex items-center gap-4">
-            <Shield className="w-10 h-10 text-brand-400" />
+            <Shield className="w-10 h-10 text-gray-900" />
             <div>
-              <h1 className="text-3xl font-bold text-white">AI Review Results</h1>
-              <p className="text-slate-400">Pull Request #{prId}</p>
+              <h1 className="text-4xl font-bold text-gray-900 tracking-tight">AI Review Results</h1>
+              <p className="text-gray-600">Pull Request #{prId}</p>
             </div>
           </div>
         </div>
@@ -142,14 +142,15 @@ export default function ReviewResult() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6 mb-8"
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="bg-gray-900 border border-gray-800 rounded-3xl p-8 mb-10 shadow-md hover:shadow-2xl transition-shadow duration-500 ease-out"
         >
-          <div className="flex items-start gap-3">
-            <FileText className="w-6 h-6 text-blue-400 flex-shrink-0 mt-1" />
+          <div className="flex items-start gap-4">
+            <FileText className="w-8 h-8 text-white flex-shrink-0 mt-1" />
             <div>
-              <h2 className="text-xl font-semibold text-white mb-2">Summary</h2>
-              <p className="text-slate-200 leading-relaxed">{review.summary}</p>
-              <div className="mt-4 flex items-center gap-4 text-sm text-slate-400">
+              <h2 className="text-2xl font-semibold text-white mb-3">Summary</h2>
+              <p className="text-gray-300 leading-relaxed text-lg">{review.summary}</p>
+              <div className="mt-5 flex items-center gap-4 text-sm text-gray-400">
                 <span>{review.commentCount} comments</span>
                 <span>•</span>
                 <span>{new Date(review.createdAt).toLocaleString()}</span>
@@ -159,14 +160,14 @@ export default function ReviewResult() {
         </motion.div>
 
         {/* Comments List */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-white mb-4">Comments ({review.comments.length})</h2>
+        <div className="space-y-6">
+          <h2 className="text-3xl font-bold text-gray-900 mb-6">Comments ({review.comments.length})</h2>
           
           {review.comments.length === 0 ? (
-            <div className="bg-slate-800 rounded-xl p-12 border border-slate-700 text-center">
+            <div className="bg-gray-900 rounded-3xl p-12 border border-gray-800 text-center shadow-sm">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-white mb-2">All Clear!</h3>
-              <p className="text-slate-400">No issues found in this pull request.</p>
+              <p className="text-gray-400">No issues found in this pull request.</p>
             </div>
           ) : (
             review.comments.map((comment, index) => (
@@ -174,20 +175,20 @@ export default function ReviewResult() {
                 key={comment.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="bg-slate-800 rounded-xl p-6 border border-slate-700"
+                transition={{ delay: index * 0.05, duration: 0.6, ease: "easeOut" }}
+                className="bg-gray-900 rounded-3xl p-8 border border-gray-800 shadow-md hover:shadow-2xl transition-all duration-500 ease-out"
               >
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between mb-5">
                   <div className="flex items-center gap-3">
                     {getSeverityIcon(comment.severity)}
                     <div>
                       <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-slate-400" />
+                        <FileText className="w-4 h-4 text-gray-400" />
                         <span className="text-white font-mono text-sm">
                           {comment.filePath}:{comment.lineNumber}
                         </span>
                       </div>
-                      <span className="text-slate-400 text-sm">{comment.category}</span>
+                      <span className="text-gray-400 text-sm">{comment.category}</span>
                     </div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getSeverityBadgeClass(comment.severity)}`}>
@@ -195,16 +196,16 @@ export default function ReviewResult() {
                   </span>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-400 mb-1">AI Review</h4>
-                    <p className="text-white whitespace-pre-wrap">{comment.body}</p>
+                    <h4 className="text-sm font-semibold text-gray-400 mb-2">AI Review</h4>
+                    <p className="text-white whitespace-pre-wrap leading-relaxed">{comment.body}</p>
                   </div>
 
                   {comment.suggestion && (
                     <div>
-                      <h4 className="text-sm font-semibold text-slate-400 mb-1">Suggestion</h4>
-                      <p className="text-green-400">{comment.suggestion}</p>
+                      <h4 className="text-sm font-semibold text-gray-400 mb-2">Suggestion</h4>
+                      <p className="text-green-400 leading-relaxed">{comment.suggestion}</p>
                     </div>
                   )}
                 </div>

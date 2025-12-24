@@ -69,10 +69,10 @@ export default function PullRequestList() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader className="w-12 h-12 text-brand-400 animate-spin mx-auto mb-4" />
-          <p className="text-slate-300">Loading pull requests...</p>
+          <Loader className="w-12 h-12 text-gray-900 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">Loading pull requests...</p>
         </div>
       </div>
     )
@@ -80,13 +80,13 @@ export default function PullRequestList() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center px-6">
-        <div className="max-w-md w-full bg-slate-800 rounded-xl p-8 border border-red-500">
-          <h2 className="text-xl font-bold text-white mb-4">Error</h2>
-          <p className="text-slate-300 mb-6">{error}</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+        <div className="max-w-md w-full bg-white rounded-2xl p-8 border border-red-200 shadow-lg">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Error</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={() => navigate('/app')}
-            className="w-full px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
+            className="w-full px-4 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition shadow-sm font-semibold"
           >
             Back to Dashboard
           </button>
@@ -96,17 +96,17 @@ export default function PullRequestList() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 px-6 py-12">
+    <div className="min-h-screen bg-gray-50 px-6 py-12">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Pull Requests</h1>
-            <p className="text-xl text-slate-300">{repoName}</p>
+            <h1 className="text-5xl font-bold text-gray-900 mb-2 tracking-tight">Pull Requests</h1>
+            <p className="text-xl text-gray-600">{repoName}</p>
           </div>
           <button
             onClick={() => navigate('/app')}
-            className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition"
+            className="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition shadow-sm font-medium"
           >
             Back to Dashboard
           </button>
@@ -114,57 +114,57 @@ export default function PullRequestList() {
 
         {/* PR List */}
         {pullRequests.length === 0 ? (
-          <div className="bg-slate-800 rounded-xl p-12 border border-slate-700 text-center">
-            <GitPullRequest className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+          <div className="bg-gray-900 rounded-2xl p-12 border border-gray-800 text-center shadow-sm">
+            <GitPullRequest className="w-16 h-16 text-gray-500 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">No Pull Requests Found</h3>
-            <p className="text-slate-400 mb-6">
+            <p className="text-gray-400 mb-6">
               Click "Sync Data" on the Dashboard to fetch pull requests from GitHub.
             </p>
             <button
               onClick={() => navigate('/app')}
-              className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
+              className="px-6 py-3 bg-gray-800 text-white rounded-xl hover:bg-gray-700 transition font-semibold"
             >
               Go to Dashboard
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {pullRequests.map((pr, index) => (
               <motion.div
                 key={pr.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-blue-500 transition-all"
+                transition={{ delay: index * 0.05, duration: 0.6, ease: "easeOut" }}
+                className="bg-gray-900 rounded-3xl p-8 border border-gray-800 hover:border-gray-700 transition-all duration-500 ease-out shadow-md hover:shadow-2xl hover:-translate-y-1"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Shield className="w-5 h-5 text-brand-400" />
-                      <h3 className="text-lg font-semibold text-white">
+                    <div className="flex items-center gap-3 mb-3">
+                      <Shield className="w-6 h-6 text-white" />
+                      <h3 className="text-xl font-semibold text-white">
                         #{pr.number} {pr.title}
                       </h3>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
+                    <div className="flex items-center gap-4 text-sm text-gray-400 mb-3">
                       <span>by {pr.author}</span>
                       <span>•</span>
                       <span>{pr.baseBranch} ← {pr.headBranch}</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 ml-4">
+                  <div className="flex items-center gap-3 ml-4">
                     <a
                       href={pr.htmlUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 text-slate-400 hover:text-blue-400 transition"
+                      className="p-2 text-gray-400 hover:text-white transition-colors duration-400"
                       title="View on GitHub"
                     >
                       <ExternalLink size={20} />
                     </a>
                     <button
                       onClick={() => navigate(`/app/pull-requests/${pr.id}/review`)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-400 font-medium shadow-sm hover:shadow-md"
                     >
                       <FileText className="w-4 h-4" />
                       View Report
@@ -172,7 +172,7 @@ export default function PullRequestList() {
                     <button
                       onClick={() => runAIReview(pr.id, pr.number)}
                       disabled={runningReview === pr.id}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-400 font-medium shadow-sm hover:shadow-md"
                     >
                       {runningReview === pr.id ? (
                         <>

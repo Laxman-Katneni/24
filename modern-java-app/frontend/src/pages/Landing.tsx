@@ -6,17 +6,17 @@ export default function Landing() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="container mx-auto px-6 py-6">
+      <header className="container mx-auto px-6 py-6 border-b border-gray-100">
         <nav className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Shield className="w-8 h-8 text-brand-400" />
-            <span className="text-2xl font-bold text-white">Repo Mind</span>
+            <Shield className="w-8 h-8 text-gray-900" />
+            <span className="text-2xl font-bold text-gray-900">Repo Mind</span>
           </div>
           <button
             onClick={() => navigate('/login')}
-            className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition"
+            className="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition font-medium shadow-sm"
           >
             Login
           </button>
@@ -24,33 +24,33 @@ export default function Landing() {
       </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-6 py-20 text-center">
+      <section className="container mx-auto px-6 py-24 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <h1 className="text-6xl font-bold text-white mb-6">
-            Repo Mind: AI-Powered
+          <h1 className="text-7xl font-bold text-gray-900 mb-6 tracking-tight">
+            Repo Mind
             <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-blue-600">
-              Code Security
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-700 to-gray-900">
+              AI-Powered Code Security
             </span>
           </h1>
-          <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
             Automated pull request reviews with context-aware AI. Catch bugs, security issues, and code smells before they reach production.
           </p>
           
           <div className="flex gap-4 justify-center">
             <button
               onClick={() => navigate('/login')}
-              className="px-8 py-4 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition flex items-center gap-2 text-lg font-semibold"
+              className="px-8 py-4 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition flex items-center gap-3 text-lg font-semibold shadow-lg hover:shadow-xl"
             >
               <Github className="w-5 h-5" />
               Login with GitHub
             </button>
             <button
-              className="px-8 py-4 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition flex items-center gap-2 text-lg font-semibold"
+              className="px-8 py-4 bg-gray-100 text-gray-900 rounded-xl hover:bg-gray-200 transition flex items-center gap-3 text-lg font-semibold"
             >
               <ArrowRight className="w-5 h-5" />
               View Demo
@@ -65,42 +65,44 @@ export default function Landing() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="bg-slate-800 rounded-2xl p-8 shadow-2xl border border-slate-700"
+          className="bg-gray-900 rounded-3xl p-8 shadow-2xl"
         >
-          <div className="aspect-video bg-gradient-to-br from-slate-700 to-slate-900 rounded-lg flex items-center justify-center">
+          <div className="aspect-video bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl flex items-center justify-center">
             <div className="text-center">
-              <Zap className="w-16 h-16 text-brand-400 mx-auto mb-4" />
-              <p className="text-slate-400 text-lg">Interactive Demo Coming Soon</p>
+              <Zap className="w-16 h-16 text-white mx-auto mb-4" />
+              <p className="text-gray-400 text-lg">Interactive Demo Coming Soon</p>
             </div>
           </div>
         </motion.div>
       </section>
 
       {/* Features Grid */}
-      <section className="container mx-auto px-6 py-20">
-        <h2 className="text-4xl font-bold text-white text-center mb-12">
-          Smart Code Reviews, Powered by AI
+      <section className="container mx-auto px-6 py-24">
+        <h2 className="text-5xl font-bold text-gray-900 text-center mb-16 tracking-tight">
+          Smart Code Reviews,
+          <br />
+          Powered by AI
         </h2>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => (
             <motion.div
               key={feature.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-brand-500 transition"
+              className="bg-gray-900 rounded-2xl p-8 hover:shadow-xl transition group"
             >
-              <feature.icon className="w-12 h-12 text-brand-400 mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
-              <p className="text-slate-300">{feature.description}</p>
+              <feature.icon className="w-12 h-12 text-white mb-4 group-hover:scale-110 transition" />
+              <h3 className="text-xl font-semibold text-white mb-3">{feature.title}</h3>
+              <p className="text-gray-400 leading-relaxed">{feature.description}</p>
             </motion.div>
           ))}
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="container mx-auto px-6 py-8 text-center text-slate-400 border-t border-slate-800">
+      <footer className="container mx-auto px-6 py-8 text-center text-gray-500 border-t border-gray-100">
         <p>© 2025 Repo Mind. Built with Spring Boot + React + AI.</p>
       </footer>
     </div>

@@ -85,12 +85,12 @@ export default function AuditResults() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 p-6">
+    <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-8">
         <button
           onClick={() => navigate('/app')}
-          className="flex items-center gap-2 text-slate-400 hover:text-white transition mb-6"
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors duration-400 mb-6"
         >
           <ArrowLeft className="w-5 h-5" />
           Back to Dashboard
@@ -98,23 +98,23 @@ export default function AuditResults() {
 
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Audit Results</h1>
-            <p className="text-slate-400">Audit ID: {auditId}</p>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">Audit Results</h1>
+            <p className="text-gray-600">Audit ID: {auditId}</p>
           </div>
           
           {auditStatus && (
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 text-center">
-                <div className="text-2xl font-bold text-red-400">{auditStatus.criticalCount}</div>
-                <div className="text-sm text-slate-400">Critical</div>
+            <div className="grid grid-cols-3 gap-6">
+              <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 text-center shadow-sm">
+                <div className="text-3xl font-bold text-red-400">{auditStatus.criticalCount}</div>
+                <div className="text-sm text-gray-400 mt-2 font-medium">Critical</div>
               </div>
-              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 text-center">
-                <div className="text-2xl font-bold text-yellow-400">{auditStatus.warningCount}</div>
-                <div className="text-sm text-slate-400">Warnings</div>
+              <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 text-center shadow-sm">
+                <div className="text-3xl font-bold text-yellow-400">{auditStatus.warningCount}</div>
+                <div className="text-sm text-gray-400 mt-2 font-medium">Warnings</div>
               </div>
-              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 text-center">
-                <div className="text-2xl font-bold text-blue-400">{auditStatus.infoCount}</div>
-                <div className="text-sm text-slate-400">Info</div>
+              <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 text-center shadow-sm">
+                <div className="text-3xl font-bold text-blue-400">{auditStatus.infoCount}</div>
+                <div className="text-sm text-gray-400 mt-2 font-medium">Info</div>
               </div>
             </div>
           )}
@@ -123,13 +123,13 @@ export default function AuditResults() {
 
       {/* Filters */}
       <div className="max-w-7xl mx-auto mb-6">
-        <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+        <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-sm">
           <div className="flex items-center gap-4">
-            <Filter className="w-5 h-5 text-slate-400" />
+            <Filter className="w-5 h-5 text-white" />
             <select
               value={severityFilter}
               onChange={(e) => setSeverityFilter(e.target.value)}
-              className="bg-slate-700 text-white rounded px-3 py-2 border border-slate-600 focus:outline-none focus:border-brand-500"
+              className="bg-gray-50 text-gray-900 rounded-xl px-4 py-2 border border-gray-200 focus:outline-none focus:border-gray-900 transition-all duration-400"
             >
               <option value="">All Severities</option>
               <option value="CRITICAL">Critical</option>
@@ -140,7 +140,7 @@ export default function AuditResults() {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="bg-slate-700 text-white rounded px-3 py-2 border border-slate-600 focus:outline-none focus:border-brand-500"
+              className="bg-gray-50 text-gray-900 rounded-xl px-4 py-2 border border-gray-200 focus:outline-none focus:border-gray-900 transition-all duration-400"
             >
               <option value="">All Categories</option>
               <option value="SECURITY">Security</option>
@@ -151,7 +151,7 @@ export default function AuditResults() {
             {(severityFilter || categoryFilter) && (
               <button
                 onClick={() => { setSeverityFilter(''); setCategoryFilter('') }}
-                className="text-sm text-brand-400 hover:text-brand-300"
+                className="text-sm text-white hover:text-gray-300 font-semibold underline underline-offset-2 transition-colors duration-400"
               >
                 Clear Filters
               </button>
@@ -163,24 +163,32 @@ export default function AuditResults() {
       {/* Findings List */}
       <div className="max-w-7xl mx-auto">
         {loading ? (
-          <div className="text-center py-20">
-            <div className="text-slate-400">Loading findings...</div>
+          <div className="flex flex-col items-center justify-center py-20">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="mb-6"
+            >
+              <Bug className="w-16 h-16 text-gray-900" />
+            </motion.div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Loading audit results...</h3>
+            <p className="text-gray-600">Fetching findings from the code audit</p>
           </div>
         ) : findings.length === 0 ? (
-          <div className="bg-slate-800 rounded-xl p-12 border border-slate-700 text-center">
-            <Bug className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+          <div className="bg-gray-900 rounded-3xl p-12 border border-gray-800 text-center shadow-sm">
+            <Bug className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">No Findings</h3>
-            <p className="text-slate-400">No issues found matching your filters.</p>
+            <p className="text-gray-400">No issues found matching your filters.</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {findings.map((finding, index) => (
               <motion.div
                 key={finding.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="bg-slate-800 rounded-xl p-6 border border-slate-700"
+                transition={{ delay: index * 0.05, duration: 0.6, ease: "easeOut" }}
+                className="bg-gray-900 rounded-3xl p-8 border border-gray-800 shadow-md hover:shadow-2xl transition-all duration-500 ease-out"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start gap-3">
@@ -221,9 +229,11 @@ export default function AuditResults() {
                   </div>
                 )}
 
-                <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700">
-                  <h4 className="text-sm font-semibold text-brand-400 mb-2">💡 Suggestion</h4>
-                  <p className="text-sm text-slate-300">{finding.suggestion}</p>
+                <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
+                  <h4 className="text-sm font-semibold text-green-400 mb-2 flex items-center gap-2">
+                    💡 Suggestion
+                  </h4>
+                  <p className="text-sm text-gray-300 leading-relaxed">{finding.suggestion}</p>
                 </div>
               </motion.div>
             ))}
