@@ -10,6 +10,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.http.HttpStatus;
+import org.springframework.boot.web.servlet.server.CookieSameSiteSupplier;
 
 import java.util.List;
 
@@ -76,5 +77,14 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         
         return source;
+    }
+
+    /**
+     * Configure session cookie for cross-subdomain sharing.
+     * Sets cookie domain to .onrender.com so cookies work across repomind-app and repomind-api.
+     */
+    @Bean
+    public CookieSameSiteSupplier cookieSameSiteSupplier() {
+        return CookieSameSiteSupplier.ofNone();
     }
 }
