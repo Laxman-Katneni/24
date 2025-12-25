@@ -5,7 +5,8 @@ import axios from 'axios'
  * Uses cookies for authentication instead of Bearer tokens.
  */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+  // Proxy handles the URL now - requests go to same origin /api/...
+  baseURL: '',
   withCredentials: true  // CRITICAL: Sends JSESSIONID cookie with every request
 })
 
