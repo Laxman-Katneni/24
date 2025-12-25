@@ -63,7 +63,9 @@ public class AuthController {
             System.out.println("Authorized client found!");
             
             // Extract user info from GitHub OAuth
-            Long githubId = oauth2User.getAttribute("id");
+            // GitHub returns ID as Integer, need to convert to Long
+            Integer githubIdInt = oauth2User.getAttribute("id");
+            Long githubId = githubIdInt.longValue();
             String username = oauth2User.getAttribute("login");
             String accessToken = authorizedClient.getAccessToken().getTokenValue();
             
