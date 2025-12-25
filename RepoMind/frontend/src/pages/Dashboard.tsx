@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import api from '../api/axios'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { Shield, GitPullRequest, MessageSquare, AlertTriangle, CheckCircle, Menu, Loader, RefreshCw, Bug, Clock, BarChart as BarChartIcon, LogOut, User, ChevronDown } from 'lucide-react'
+import { Shield, GitPullRequest, MessageSquare, AlertTriangle, CheckCircle, Menu, Loader, RefreshCw, Bug, Clock, LogOut, User, ChevronDown } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 interface DashboardMetrics {

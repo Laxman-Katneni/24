@@ -44,13 +44,13 @@ export default function Chat() {
   const [repoId, setRepoId] = useState<string | null>(null)
   const [repoName, setRepoName] = useState('')
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const [conversationId, setConversationId] = useState<string>(() => {
+  const conversationId = (() => {
     const existing = sessionStorage.getItem('chatConversationId')
     if (existing) return existing
     const newId = crypto.randomUUID()
     sessionStorage.setItem('chatConversationId', newId)
     return newId
-  })
+  })()
 
   useEffect(() => {
     const selectedRepoId = localStorage.getItem('selectedRepoId')
