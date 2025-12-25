@@ -105,14 +105,12 @@ public class SecurityConfig {
     }
 
     /**
-     * Use cookie-based storage for OAuth2 authorization requests.
-     * This prevents "authorization_request_not_found" errors when running multiple instances
-     * since the authorization request is stored in a cookie, not server-side session.
+     * Authorization request repository for OAuth flow.
+     * Using session-based storage.
      */
     @Bean
     public org.springframework.security.oauth2.client.web.AuthorizationRequestRepository<org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest> cookieAuthorizationRequestRepository() {
-        // Using cookie-based repository instead of HttpSession-based
-        // This stores the OAuth state in a cookie, making it available across all backend instances
-        return new org.springframework.security.oauth2.client.web.HttpCookieOAuth2AuthorizationRequestRepository();
+        return new org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizationRequestRepository();
     }
 }
+
