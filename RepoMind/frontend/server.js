@@ -17,15 +17,18 @@ console.log(`Backend URL: ${BACKEND_URL}`);
 // CRITICAL: Must include /auth for the success handler and /login/oauth2 for the callback
 app.use(['/api', '/auth', '/oauth2', '/login/oauth2'], createProxyMiddleware({
     target: BACKEND_URL,
-    changeOrigin: true,
-    ws: true, // Proxy WebSockets too!
+    changeOrigin: false,  // CHANGED: Don't change origin - keep frontend host
+    xfwd: true,  // Add X-Forwarded-* headers
+    ws: true,
     onProxyReq: (proxyReq, req, res) => {
         // Log proxy requests for debugging
         console.log(`Proxying ${req.method} ${req.path} -> ${BACKEND_URL}`);
+        console.log(`Cookies: ${req.headers.cookie || 'none'}`);
     },
     onProxyRes: (proxyRes, req, res) => {
         // Log responses for debugging
         console.log(`Response from ${req.path}: ${proxyRes.statusCode}`);
+        console.log(`Set-Cookie: ${proxyRes.headers['set-cookie'] || 'none'}`);
     },
     onError: (err, req, res) => {
         console.error('Proxy Error:', err);
