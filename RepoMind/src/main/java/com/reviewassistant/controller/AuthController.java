@@ -37,44 +37,68 @@ public class AuthController {
             OAuth2AuthenticationToken authentication,
             HttpServletResponse response) throws Exception {
         
-        // Get OAuth2User from authentication
-        OAuth2User oauth2User = authentication.getPrincipal();
-        
-        // Get the authorized client to extract access token
-        OAuth2AuthorizedClient authorizedClient = authorizedClientService
-                .loadAuthorizedClient(
-                        authentication.getAuthorizedClientRegistrationId(),
-                        authentication.getName()
-                );
-        
-        if (authorizedClient == null) {
-            System.err.println("ERROR: No authorized client found!");
-            response.sendRedirect(frontendUrl + "/login?error=oauth");
-            return;
+        try {
+            System.out.println("=== OAuth Callback Started ===");
+            
+            // Get OAuth2User from authentication
+            OAuth2User oauth2User = authentication.getPrincipal();
+            System.out.println("OAuth2User: " + oauth2User.getName());
+            
+            // Get the authorized client to extract access token
+            System.out.println("Loading authorized client...");
+            OAuth2AuthorizedClient authorizedClient = authorizedClientService
+                    .loadAuthorizedClient(
+                            authentication.getAuthorizedClientRegistrationId(),
+                            authentication.getName()
+                    );
+            
+            if (authorizedClient == null) {
+                System.err.println("ERROR: No authorized client found!");
+                System.err.println("Registration ID: " + authentication.getAuthorizedClientRegistrationId());
+                System.err.println("Principal Name: " + authentication.getName());
+                response.sendRedirect(frontendUrl + "/login?error=no_client");
+                return;
+            }
+            
+            System.out.println("Authorized client found!");
+            
+            // Extract user info from GitHub OAuth
+            Long githubId = oauth2User.getAttribute("id");
+            String username = oauth2User.getAttribute("login");
+            String accessToken = authorizedClient.getAccessToken().getTokenValue();
+            
+            System.out.println("=== OAuth Success ===");
+            System.out.println("GitHub ID: " + githubId);
+            System.out.println("Username: " + username);
+            System.out.println("Access Token: " + (accessToken != null ? "present" : "null"));
+            
+            // Store or update GitHub access token in database
+            System.out.println("Saving to database...");
+            UserGithubToken userToken = tokenRepository.findByGithubId(githubId)
+                    .orElse(new UserGithubToken());
+            
+            userToken.setGithubId(githubId);
+            userToken.setUsername(username);
+            userToken.setAccessToken(accessToken);
+            tokenRepository.save(userToken);
+            System.out.println("Saved to database!");
+            
+            // Generate JWT for frontend
+            System.out.println("Generating JWT...");
+            String jwt = jwtUtil.generateToken(username, githubId);
+            System.out.println("JWT generated: " + jwt.substring(0, Math.min(20, jwt.length())) + "...");
+            
+            // Redirect to frontend with JWT in URL fragment
+            String redirectUrl = frontendUrl + "/auth/callback#token=" + jwt;
+            System.out.println("Redirecting to: " + redirectUrl);
+            response.sendRedirect(redirectUrl);
+            System.out.println("=== OAuth Callback Completed ===");
+            
+        } catch (Exception e) {
+            System.err.println("=== OAUTH CALLBACK ERROR ===");
+            System.err.println("Error: " + e.getMessage());
+            e.printStackTrace();
+            response.sendRedirect(frontendUrl + "/login?error=callback_failed");
         }
-        
-        // Extract user info from GitHub OAuth
-        Long githubId = oauth2User.getAttribute("id");
-        String username = oauth2User.getAttribute("login");
-        String accessToken = authorizedClient.getAccessToken().getTokenValue();
-        
-        System.out.println("=== OAuth Success ===");
-        System.out.println("GitHub ID: " + githubId);
-        System.out.println("Username: " + username);
-        
-        // Store or update GitHub access token in database
-        UserGithubToken userToken = tokenRepository.findByGithubId(githubId)
-                .orElse(new UserGithubToken());
-        
-        userToken.setGithubId(githubId);
-        userToken.setUsername(username);
-        userToken.setAccessToken(accessToken);
-        tokenRepository.save(userToken);
-        
-        // Generate JWT for frontend
-        String jwt = jwtUtil.generateToken(username, githubId);
-        
-        // Redirect to frontend with JWT in URL fragment
-        response.sendRedirect(frontendUrl + "/auth/callback#token=" + jwt);
     }
 }
