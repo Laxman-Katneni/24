@@ -5,8 +5,11 @@ import com.reviewassistant.controller.dto.AuditStatusResponse;
 import com.reviewassistant.controller.dto.StartAuditResponse;
 import com.reviewassistant.model.AuditFinding;
 import com.reviewassistant.model.CodeAudit;
+import com.reviewassistant.model.UserGithubToken;
 import com.reviewassistant.repository.AuditFindingRepository;
+import com.reviewassistant.repository.UserGithubTokenRepository;
 import com.reviewassistant.service.CodeAuditService;
+import com.reviewassistant.util.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -14,8 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,26 +29,40 @@ public class AuditController {
 
     private final CodeAuditService codeAuditService;
     private final AuditFindingRepository auditFindingRepository;
+    private final UserGithubTokenRepository tokenRepository;
+    private final JwtUtil jwtUtil;
 
-    public AuditController(CodeAuditService codeAuditService, AuditFindingRepository auditFindingRepository) {
+    public AuditController(CodeAuditService codeAuditService, 
+                          AuditFindingRepository auditFindingRepository,
+                          UserGithubTokenRepository tokenRepository,
+                          JwtUtil jwtUtil) {
         this.codeAuditService = codeAuditService;
         this.auditFindingRepository = auditFindingRepository;
+        this.tokenRepository = tokenRepository;
+        this.jwtUtil = jwtUtil;
     }
 
     /**
      * Start a code audit for a repository.
      * Returns immediately with audit ID for polling.
+     * Uses JWT authentication to fetch GitHub token from database.
      */
     @PostMapping("/start/{repositoryId}")
     public ResponseEntity<StartAuditResponse> startAudit(
             @PathVariable Long repositoryId,
-            @RegisteredOAuth2AuthorizedClient("github") OAuth2AuthorizedClient authorizedClient) {
+            Authentication authentication) {
         
-        // Extract token from OAuth2 session
-        String accessToken = authorizedClient.getAccessToken().getTokenValue();
-
         try {
-            logger.info("Starting audit for repository ID: {}", repositoryId);
+            // Extract GitHub ID from JWT authentication
+            Long githubId = jwtUtil.extractGithubId(authentication.getName());
+            
+            // Fetch GitHub token from database
+            UserGithubToken userToken = tokenRepository.findByGithubId(githubId)
+                .orElseThrow(() -> new RuntimeException("GitHub token not found for user"));
+            
+            String accessToken = userToken.getAccessToken();
+            
+            logger.info("Starting audit for repository ID: {} by user: {}", repositoryId, authentication.getName());
             Long auditId = codeAuditService.startAudit(repositoryId, accessToken);
             return ResponseEntity.accepted().body(StartAuditResponse.success(auditId));
         } catch (Exception e) {

@@ -1,14 +1,16 @@
 package com.reviewassistant.controller;
 
 import com.reviewassistant.model.ReviewRun;
+import com.reviewassistant.model.UserGithubToken;
 import com.reviewassistant.repository.ReviewRunRepository;
+import com.reviewassistant.repository.UserGithubTokenRepository;
 import com.reviewassistant.service.ReviewService;
+import com.reviewassistant.util.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,10 +27,17 @@ public class ReviewController {
     
     private final ReviewService reviewService;
     private final ReviewRunRepository reviewRunRepository;
+    private final UserGithubTokenRepository tokenRepository;
+    private final JwtUtil jwtUtil;
     
-    public ReviewController(ReviewService reviewService, ReviewRunRepository reviewRunRepository) {
+    public ReviewController(ReviewService reviewService, 
+                          ReviewRunRepository reviewRunRepository,
+                          UserGithubTokenRepository tokenRepository,
+                          JwtUtil jwtUtil) {
         this.reviewService = reviewService;
         this.reviewRunRepository = reviewRunRepository;
+        this.tokenRepository = tokenRepository;
+        this.jwtUtil = jwtUtil;
     }
     
     /**
@@ -62,25 +71,37 @@ public class ReviewController {
     /**
      * Run AI review for a pull request by its database ID.
      * This endpoint is called from the frontend PR list.
+     * Uses JWT authentication to fetch GitHub token from database.
      * 
      * @param prId Database ID of the pull request
-     * @param authorizedClient OAuth2 authorized client from session
+     * @param authentication JWT authentication from request
      * @return Saved ReviewRun with comments
      */
     @PostMapping("/run/{prId}")
     public ResponseEntity<ReviewRun> runReview(
             @PathVariable Long prId,
-            @RegisteredOAuth2AuthorizedClient("github") OAuth2AuthorizedClient authorizedClient) {
-        logger.info("Running AI review for PR ID: {}", prId);
+            Authentication authentication) {
+        logger.info("Running AI review for PR ID: {} by user: {}", prId, authentication.getName());
         
-        // Extract token from OAuth2 session
-        String token = authorizedClient.getAccessToken().getTokenValue();
-        
-        ReviewRun reviewRun = reviewService.analyzePr(prId, token);
-        
-        logger.info("Review completed with {} comments", reviewRun.getCommentCount());
-        
-        return ResponseEntity.ok(reviewRun);
+        try {
+            // Extract GitHub ID from JWT authentication
+            Long githubId = jwtUtil.extractGithubId(authentication.getName());
+            
+            // Fetch GitHub token from database
+            UserGithubToken userToken = tokenRepository.findByGithubId(githubId)
+                .orElseThrow(() -> new RuntimeException("GitHub token not found for user"));
+            
+            String token = userToken.getAccessToken();
+            
+            ReviewRun reviewRun = reviewService.analyzePr(prId, token);
+            
+            logger.info("Review completed with {} comments", reviewRun.getCommentCount());
+            
+            return ResponseEntity.ok(reviewRun);
+        } catch (Exception e) {
+            logger.error("Failed to run review: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).build();
+        }
     }
     
     /**
