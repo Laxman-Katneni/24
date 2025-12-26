@@ -9,7 +9,6 @@ import com.reviewassistant.model.UserGithubToken;
 import com.reviewassistant.repository.AuditFindingRepository;
 import com.reviewassistant.repository.UserGithubTokenRepository;
 import com.reviewassistant.service.CodeAuditService;
-import com.reviewassistant.util.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -30,16 +29,13 @@ public class AuditController {
     private final CodeAuditService codeAuditService;
     private final AuditFindingRepository auditFindingRepository;
     private final UserGithubTokenRepository tokenRepository;
-    private final JwtUtil jwtUtil;
 
     public AuditController(CodeAuditService codeAuditService, 
                           AuditFindingRepository auditFindingRepository,
-                          UserGithubTokenRepository tokenRepository,
-                          JwtUtil jwtUtil) {
+                          UserGithubTokenRepository tokenRepository) {
         this.codeAuditService = codeAuditService;
         this.auditFindingRepository = auditFindingRepository;
         this.tokenRepository = tokenRepository;
-        this.jwtUtil = jwtUtil;
     }
 
     /**
@@ -53,8 +49,8 @@ public class AuditController {
             Authentication authentication) {
         
         try {
-            // Extract GitHub ID from JWT authentication
-            Long githubId = jwtUtil.extractGithubId(authentication.getName());
+            // Extract GitHub ID from JWT (set by JwtAuthenticationFilter)
+            Long githubId = (Long) authentication.getDetails();
             
             // Fetch GitHub token from database
             UserGithubToken userToken = tokenRepository.findByGithubId(githubId)

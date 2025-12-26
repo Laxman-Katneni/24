@@ -5,7 +5,6 @@ import com.reviewassistant.model.UserGithubToken;
 import com.reviewassistant.repository.ReviewRunRepository;
 import com.reviewassistant.repository.UserGithubTokenRepository;
 import com.reviewassistant.service.ReviewService;
-import com.reviewassistant.util.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -28,16 +27,13 @@ public class ReviewController {
     private final ReviewService reviewService;
     private final ReviewRunRepository reviewRunRepository;
     private final UserGithubTokenRepository tokenRepository;
-    private final JwtUtil jwtUtil;
     
     public ReviewController(ReviewService reviewService, 
                           ReviewRunRepository reviewRunRepository,
-                          UserGithubTokenRepository tokenRepository,
-                          JwtUtil jwtUtil) {
+                          UserGithubTokenRepository tokenRepository) {
         this.reviewService = reviewService;
         this.reviewRunRepository = reviewRunRepository;
         this.tokenRepository = tokenRepository;
-        this.jwtUtil = jwtUtil;
     }
     
     /**
@@ -84,8 +80,8 @@ public class ReviewController {
         logger.info("Running AI review for PR ID: {} by user: {}", prId, authentication.getName());
         
         try {
-            // Extract GitHub ID from JWT authentication
-            Long githubId = jwtUtil.extractGithubId(authentication.getName());
+            // Extract GitHub ID from JWT (set by JwtAuthenticationFilter)
+            Long githubId = (Long) authentication.getDetails();
             
             // Fetch GitHub token from database
             UserGithubToken userToken = tokenRepository.findByGithubId(githubId)
