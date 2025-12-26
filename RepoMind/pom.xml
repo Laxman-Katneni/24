@@ -96,11 +96,12 @@
             <version>${spring-ai.version}</version>
         </dependency>
         
-        <!-- Redis for async queues -->
+        <!-- Redis dependency (disabled - not needed)
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
+        -->
         
         <!-- Spring Retry for resilience -->
         <dependency>
