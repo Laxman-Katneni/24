@@ -411,7 +411,7 @@ export default function Dashboard() {
           ) : metrics ? (
             <>
               {/* Getting Started Card - Show when no activity */}
-              {metrics.totalReviews === 0 && (
+              {!latestAudit && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -500,8 +500,8 @@ export default function Dashboard() {
               />
               <MetricCard
                 title="Last Audit"
-                value={latestAudit ? new Date(latestAudit.completedAt || latestAudit.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Never'}
-                change={latestAudit ? new Date(latestAudit.completedAt || latestAudit.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'Start scanning'}
+                value={latestAudit && latestAudit.completedAt ? new Date(latestAudit.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Never'}
+                change={latestAudit && latestAudit.completedAt ? new Date(latestAudit.completedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'Run audit'}
                 icon={Clock}
                 color="green"
               />
