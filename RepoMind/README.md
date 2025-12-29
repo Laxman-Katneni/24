@@ -1064,10 +1064,9 @@ Built as a comprehensive demonstration of:
 
 ## 📧 Contact & Links
 
-- **Portfolio**: [your-portfolio-url]
-- **LinkedIn**: [your-linkedin]
-- **GitHub**: [luckykatneni](https://github.com/luckykatneni)
-- **Email**: your.email@example.com
+- **Portfolio**: [portfolio](laxmankatneni.net)
+- **LinkedIn**: [Laxman Katneni](www.linkedin.com/in/laxman-katneni)
+- **Email**: laxmankatneni@outlook.com
 
 ---
 
