@@ -26,7 +26,7 @@ RepoMind demonstrates sophisticated software engineering principles through a pr
 
 **Technical Showcase**: This project demonstrates mastery of:
 - ✅ **Custom ML Model Fine-Tuning** (Qwen 2.5 7B → 4-bit quantized → Deployed on HuggingFace)
-- ✅ **Dataset Engineering** (880k+ real-world + synthetic code review samples)
+- ✅ **Dataset Engineering** (2000+ real-world + synthetic code review samples)
 - ✅ **Multi-Tier AI Fallback** (Custom Model → Gemini → OpenAI with load balancing)
 - ✅ **Event-Driven Architecture** (GitHub Webhooks → Async Processing → Notifications)
 - ✅ **Advanced RAG Implementation** (AST-aware chunking + Semantic retrieval + Context optimization)
@@ -53,7 +53,7 @@ We implemented a **complete ML pipeline** from dataset creation to production de
 
 #### **1. Dataset Engineering** 📊
 
-Created a **multi-source training dataset** with 880,000+ code review samples:
+Created a **multi-source training dataset** with 2000+ code review samples:
 
 ```python
 # Dataset Composition
@@ -283,7 +283,7 @@ public AuditResult analyzeCode(String code, String language, String filePath, St
 ### **ML Engineering Skills Demonstrated**:
 
 1. ✅ **End-to-End ML Pipeline**: Data collection → Preprocessing → Training → Quantization → Deployment
-2. ✅ **Dataset Engineering**: Multi-source data fusion (880k samples), quality validation, balanced sampling
+2. ✅ **Dataset Engineering**: Multi-source data fusion (2000 samples), quality validation, balanced sampling
 3. ✅ **Model Optimization**: LoRA fine-tuning, 4-bit quantization (NF4), memory-efficient training
 4. ✅ **Production ML**: Load balancing, health checks, graceful fallbacks, monitoring
 5. ✅ **Cost Engineering**: $0/month AI costs using strategic free-tier orchestration
@@ -717,7 +717,7 @@ public class WebhookController {
 
 **Custom Fine-Tuned Models**:
 - **Qwen 2.5 7B (Fine-Tuned)**: Primary code review model (4-bit quantized, hosted on HuggingFace)
-  - 880k+ training samples (real-world + synthetic)
+  - 2000+ training samples (real-world + synthetic)
   - Specialized for security vulnerability detection (CWE-tagged)
   - 97% CWE detection accuracy (outperforms GPT-4 on security)
   - FREE hosting via HuggingFace Inference API
